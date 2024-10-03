@@ -1,7 +1,9 @@
 import argparse
 from holdings import read_holdings
-from rates import read_rates
+from rates import ExchangeRate
 from returns import compute_returns
+
+from datetime import date
 
 def main():
     # Create the parser
@@ -18,8 +20,9 @@ def main():
     args = parser.parse_args()
 
     holdings = read_holdings(args.holdings)
-    rates = read_rates(args.rates)
-    print(rates)
+    rates = ExchangeRate(args.rates)
+    
+    print(rates.get_rate(date(2024, 3, 15)))
 
     returns = compute_returns(holdings, rates)
 
