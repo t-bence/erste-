@@ -22,8 +22,6 @@ def main():
     holdings = read_holdings(args.holdings)
     rates = ExchangeRate(args.rates)
     
-    print(rates.get_rate(date(2024, 3, 15)))
-
     returns = compute_returns(holdings, rates)
 
 
