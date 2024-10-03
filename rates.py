@@ -1,59 +1,34 @@
 from datetime import date
+import polars as pl
+import lxml.html as lh
 
-class ExchangeRate:
-    """Stores the exchange rates read from a file
-    """
-    rates: dict[date, float]
-    start_date: date
-    end_date: date
+def read_rates(filename: str) -> pl.DataFrame:
+    doc = lh.parse(filename)
 
-    def __init__(self, filename: str):
-        #TODO: turn into factory method
-        import lxml.html
-        doc = lxml.html.parse(filename)
-        from datetime import date
+    dates = doc.xpath("//tr/td[1]/text()")
+    rates = doc.xpath("//tr/td[2]/text()")
 
-        dates = doc.xpath("//tr/td[1]/text()")
-        rates = doc.xpath("//tr/td[2]/text()")
+    months_hungarian = {
+        "január": 1,
+        "február": 2,
+        "március": 3,
+        "április": 4,
+        "május": 5,
+        "június": 6,
+        "július": 7,
+        "augusztus": 8,
+        "szeptember": 9,
+        "október": 10,
+        "november": 11,
+        "december": 12
+    }
 
-        def parse_date(input: str) -> date:
-            months_hungarian = {
-                "január": 1,
-                "február": 2,
-                "március": 3,
-                "április": 4,
-                "május": 5,
-                "június": 6,
-                "július": 7,
-                "augusztus": 8,
-                "szeptember": 9,
-                "október": 10,
-                "november": 11,
-                "december": 12
-            }
-
-            items = input.strip().replace(".", "").replace(",", "").split(" ")
-            year = int(items[0])
-            month = months_hungarian[items[1]]
-            day = int(items[2])
-            return date(year, month, day)
-        
-        def parse_rate(input: str) -> float:
-            return float(input.strip().replace(",", "."))
-        
-        self.rates = dict((parse_date(d), parse_rate(r)) for (d, r) in zip(dates, rates))
-        self.start_date = parse_date(dates[0])
-        self.end_date = parse_date(dates[-1])
-
-    def get_rate(self, day: date, iter:int=0) -> float:
-        from datetime import timedelta
-        if day < self.start_date:
-            raise ValueError(f"{day} is earlier than start date")
-        elif day > self.end_date:
-            raise ValueError(f"{day} is later than end date")
-        if iter > 3:
-            raise ValueError(f"Recursion depth exceeded on {day}")
-        if day in self.rates.keys():
-            return self.rates[day]
-        else:
-            return self.get_rate(day - timedelta(days=1), iter+1)
+    return (
+        pl
+        .DataFrame(zip(dates, rates), schema=("Date", "EUR rate"))
+        .with_columns(pl.col("EUR rate").str.replace(",", ".").cast(pl.Float64))
+        .with_columns(pl.col("Date").str.replace_many([".", ","], "").str.split(" "))
+        .with_columns(pl.col("Date").list.get(1).replace(months_hungarian).alias("month"))
+        .with_columns(pl.date(pl.col("Date").list.get(0), "month", pl.col("Date").list.get(2)).alias("Date bought"))
+        .select("Date bought", "EUR rate")
+    )

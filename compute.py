@@ -1,6 +1,7 @@
 import argparse
+import polars as pl
 from holdings import read_holdings
-from rates import ExchangeRate
+from rates import read_rates
 from returns import compute_returns
 
 from datetime import date
@@ -20,9 +21,10 @@ def main():
     args = parser.parse_args()
 
     holdings = read_holdings(args.holdings)
-    rates = ExchangeRate(args.rates)
-    
-    returns = compute_returns(holdings, rates)
+    rates = read_rates(args.rates)
+
+    pl.Config.set_tbl_rows(100)
+    print(compute_returns(holdings, rates))
 
 
 if __name__ == '__main__':

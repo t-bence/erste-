@@ -1,28 +1,15 @@
 from typing import Any
 import polars as pl
-from rates import ExchangeRate
 
-def compute_returns(holdings: pl.DataFrame, rates: ExchangeRate):
-    
-    def past_rate(row: tuple[Any]) -> float:
-        return 350.0
-        """
-        if pl.col("Currency") == "HUF":
-            return 1.0
-        elif pl.col("Currency") == "EUR":
-            return rates.get_rate(pl.col("Date bought"))
-        else:
-            raise ValueError(f"Not supported currency: {pl.col("Currency")}")
-        """
+def compute_returns(holdings: pl.DataFrame, rates: pl.DataFrame):
                 
-    holdings = (
+    return (
         holdings
+        .join(rates, on=pl.col("Date bought"))
         .with_columns(
             pl
             .when(pl.col("Currency") == "HUF").then(pl.lit(1.0))
-            .when(pl.col("Currency") == "EUR").then(
-                pl.col("Date bought").map_elements(rates.rates.get)
-            )
+            .when(pl.col("Currency") == "EUR").then(pl.col("EUR rate"))
             .otherwise(pl.lit(None))
             .alias("Purchase currency rate")
         )
@@ -34,8 +21,5 @@ def compute_returns(holdings: pl.DataFrame, rates: ExchangeRate):
             ((pl.col("Current price") - pl.col("Unit cost")) * pl.col("Current currency rate"))
             .alias("Underlying gain")
         )
+        .sort(pl.col("Date bought"))
     )
-
-    pl.Config.set_tbl_rows(100)
-    
-    print(holdings)
