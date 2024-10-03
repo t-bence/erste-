@@ -8,6 +8,7 @@ class ExchangeRate:
     end_date: date
 
     def __init__(self, filename: str):
+        #TODO: turn into factory method
         import lxml.html
         doc = lxml.html.parse(filename)
         from datetime import date
@@ -51,7 +52,7 @@ class ExchangeRate:
         elif day > self.end_date:
             raise ValueError(f"{day} is later than end date")
         if iter > 3:
-            raise ValueError(f"Iteration depth exceeded for {day}")
+            raise ValueError(f"Recursion depth exceeded on {day}")
         if day in self.rates.keys():
             return self.rates[day]
         else:
