@@ -14,15 +14,15 @@ def compute_returns(holdings: pl.DataFrame, rates: ExchangeRate):
         else:
             raise ValueError(f"Not supported currency: {pl.col("Currency")}")
         """
-        
-    print(holdings.columns)
-        
+                
     holdings = (
         holdings
         .with_columns(
             pl
             .when(pl.col("Currency") == "HUF").then(pl.lit(1.0))
-            .when(pl.col("Currency") == "EUR").then(pl.lit(350))
+            .when(pl.col("Currency") == "EUR").then(
+                pl.col("Date bought").map_elements(rates.rates.get)
+            )
             .otherwise(pl.lit(None))
             .alias("Purchase currency rate")
         )
@@ -35,5 +35,7 @@ def compute_returns(holdings: pl.DataFrame, rates: ExchangeRate):
             .alias("Underlying gain")
         )
     )
+
+    pl.Config.set_tbl_rows(100)
     
     print(holdings)
