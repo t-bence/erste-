@@ -29,8 +29,21 @@ def read_rates(filename: str) -> pl.DataFrame:
     return (
         pl
         .DataFrame(zip(dates, rates), schema=("Date", "EUR rate"))
-        .with_columns(pl.col("EUR rate").str.replace(",", ".").cast(pl.Float64))
-        .with_columns(pl.col("Date").str.replace_many(mapping).str.split(",").list.get(0))
-        .with_columns(pl.col("Date").str.to_date(format="%Y. %-m. %-d.").alias("Date bought"))
+        .with_columns(
+            pl.col("EUR rate")
+            .str.replace(",", ".")
+            .cast(pl.Float64)
+        )
+        .with_columns(
+            pl.col("Date")
+            .str.replace_many(mapping)
+            .str.split(",")
+            .list.get(0)
+        )
+        .with_columns(
+            pl.col("Date")
+            .str.to_date(format="%Y. %-m. %-d.")
+            .alias("Date bought")
+        )
         .select("Date bought", "EUR rate")
     )
